@@ -1,8 +1,11 @@
 # newsletter2rm
 
-Sends new posts from a Substack newsletter (default: newsletter.eng-leadership.com) to a
-reMarkable 2 as PDFs sized exactly to the screen (157.8 × 210.4 mm), with grayscale images
-and e-ink friendly typography. Uses only the public RSS feed, so there's no login to break.
+Sends new posts from a Substack newsletter to a reMarkable 2 as PDFs sized exactly to the
+screen (157.8 × 210.4 mm), with grayscale images and e-ink friendly typography. Uses only
+the public RSS feed, so there's no login to break. Point `FEED_URL` at any Substack (or any
+RSS feed with full `content:encoded` HTML). Paywalled posts get the free preview plus a link.
+
+Not affiliated with reMarkable or Substack. Uploads use [rmapi](https://github.com/ddvk/rmapi).
 
 Flow: RSS → clean HTML (images downloaded at full size, grayscale, inlined) → headless
 Chromium PDF → `rmapi put /Newsletters`.
@@ -21,17 +24,17 @@ docker run --rm -u $(id -u):$(id -g) -e HOME=/tmp -v $PWD/out:/out newsletter2rm
 Get a one-time code at https://my.remarkable.com/device/browser/connect, then:
 
 ```sh
-touch rmapi.conf
-echo CODE | docker run --rm -i -v $PWD/rmapi.conf:/tmp/rmapi.conf newsletter2rm rmapi ls
+mkdir -p rmapi
+echo CODE | docker run --rm -i -v $PWD/rmapi:/rmapi -e RMAPI_CONFIG=/rmapi/rmapi.conf newsletter2rm rmapi ls
 ```
 
-`rmapi.conf` now holds a device token, valid until you remove the device in your reMarkable
-account. It is git-ignored.
+`rmapi/rmapi.conf` now holds a device token, valid until you remove the device in your reMarkable
+account. It is git-ignored. (Mount the directory, not the file: rmapi replaces the file on save.)
 
 ### Real run locally
 
 ```sh
-docker run --rm -v $PWD/rmapi.conf:/tmp/rmapi.conf -v $PWD:/state -e STATE_URI=/state/state.json newsletter2rm
+docker run --rm -v $PWD/rmapi:/rmapi -e RMAPI_CONFIG=/rmapi/rmapi.conf -v $PWD:/state -e STATE_URI=/state/state.json newsletter2rm
 ```
 
 The first run (no state file) sends the latest `BACKFILL` (default 3) posts and marks the
@@ -44,7 +47,7 @@ PROJECT=my-project ./deploy.sh
 ```
 
 Creates a Cloud Run Job, a Cloud Scheduler trigger (every 3 h), a GCS bucket for state and a
-Secret Manager secret with `rmapi.conf`. It all fits in the free tier.
+Secret Manager secret with `rmapi/rmapi.conf`. It all fits in the free tier.
 
 ## Settings (env vars)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy newsletter2rm as a Cloud Run Job triggered by Cloud Scheduler.
-# Usage: PROJECT=my-project ./deploy.sh     (needs ./rmapi.conf from the pairing step)
+# Usage: PROJECT=my-project ./deploy.sh     (needs ./rmapi/rmapi.conf from the pairing step)
 set -euo pipefail
 
 PROJECT="${PROJECT:?set PROJECT to the GCP project id}"
@@ -12,7 +12,7 @@ IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${NAME}/${NAME}"
 SA="${NAME}@${PROJECT}.iam.gserviceaccount.com"
 g() { gcloud --project "$PROJECT" "$@"; }
 
-[ -f rmapi.conf ] || { echo "rmapi.conf missing - pair first (see README)"; exit 1; }
+[ -s rmapi/rmapi.conf ] || { echo "rmapi/rmapi.conf missing - pair first (see README)"; exit 1; }
 
 g services enable run.googleapis.com cloudscheduler.googleapis.com secretmanager.googleapis.com \
   artifactregistry.googleapis.com cloudbuild.googleapis.com
@@ -26,9 +26,9 @@ g storage buckets add-iam-policy-binding "$BUCKET" --member "serviceAccount:$SA"
   --role roles/storage.objectAdmin >/dev/null
 
 if g secrets describe rmapi-conf >/dev/null 2>&1; then
-  g secrets versions add rmapi-conf --data-file rmapi.conf
+  g secrets versions add rmapi-conf --data-file rmapi/rmapi.conf
 else
-  g secrets create rmapi-conf --data-file rmapi.conf --replication-policy automatic
+  g secrets create rmapi-conf --data-file rmapi/rmapi.conf --replication-policy automatic
 fi
 g secrets add-iam-policy-binding rmapi-conf --member "serviceAccount:$SA" \
   --role roles/secretmanager.secretAccessor >/dev/null

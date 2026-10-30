@@ -1,4 +1,4 @@
 out/
 state.json
-rmapi.conf
+rmapi/
 __pycache__/
