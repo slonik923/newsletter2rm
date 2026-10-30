@@ -1,0 +1,5 @@
+out/
+state.json
+rmapi.conf
+.git/
+__pycache__/
