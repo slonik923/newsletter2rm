@@ -15,7 +15,7 @@ g() { gcloud --project "$PROJECT" "$@"; }
 [ -s rmapi/rmapi.conf ] || { echo "rmapi/rmapi.conf missing - pair first (see README)"; exit 1; }
 
 g services enable run.googleapis.com cloudscheduler.googleapis.com secretmanager.googleapis.com \
-  artifactregistry.googleapis.com cloudbuild.googleapis.com
+  artifactregistry.googleapis.com
 
 g iam service-accounts describe "$SA" >/dev/null 2>&1 \
   || g iam service-accounts create "$NAME" --display-name "newsletter to reMarkable"
@@ -35,7 +35,9 @@ g secrets add-iam-policy-binding rmapi-conf --member "serviceAccount:$SA" \
 
 g artifacts repositories describe "$NAME" --location "$REGION" >/dev/null 2>&1 \
   || g artifacts repositories create "$NAME" --location "$REGION" --repository-format docker
-g builds submit --tag "$IMAGE" .
+gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+docker build --platform linux/amd64 -t "$IMAGE" .
+docker push "$IMAGE"
 
 g run jobs deploy "$NAME" --region "$REGION" --image "$IMAGE" \
   --service-account "$SA" \

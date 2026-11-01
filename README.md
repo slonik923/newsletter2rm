@@ -46,7 +46,7 @@ rest as seen. Later runs send only new posts.
 PROJECT=my-project ./deploy.sh
 ```
 
-Creates a Cloud Run Job, a Cloud Scheduler trigger (every 3 h), a GCS bucket for state and a
+Builds the image locally (Docker), pushes it to Artifact Registry and creates a Cloud Run Job, a Cloud Scheduler trigger (every 3 h), a GCS bucket for state and a
 Secret Manager secret with `rmapi/rmapi.conf`. It all fits in the free tier.
 
 ## Settings (env vars)
