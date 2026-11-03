@@ -46,8 +46,21 @@ rest as seen. Later runs send only new posts.
 PROJECT=my-project ./deploy.sh
 ```
 
-Builds the image locally (Docker), pushes it to Artifact Registry and creates a Cloud Run Job, a Cloud Scheduler trigger (every 3 h), a GCS bucket for state and a
-Secret Manager secret with `rmapi/rmapi.conf`. It all fits in the free tier.
+Builds the image locally (Docker), pushes it to Artifact Registry and creates a Cloud Run Job,
+a Cloud Scheduler trigger (every 3 h), a GCS bucket for state and a Secret Manager secret with
+`rmapi/rmapi.conf`. It all fits in the free tier.
+
+### Continuous deploy from GitHub
+
+```sh
+PROJECT=my-project REPO=owner/newsletter2rm ./setup-github-deploy.sh
+```
+
+Sets up Workload Identity Federation so `.github/workflows/deploy.yml` can authenticate without
+a stored key, and a `github-deployer` service account that can only push images and update the
+job. Put the printed values into the workflow's `env`. After that, every push to `master`
+builds the image on GitHub and points the job at it. `deploy.sh` is only needed again to change
+the schedule, secret or other infrastructure.
 
 ## Settings (env vars)
 

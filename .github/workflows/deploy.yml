@@ -1,0 +1,45 @@
+# Build the image and point the Cloud Run Job at it on every push to master.
+# One-time GCP setup (bucket, secret, scheduler, Workload Identity) is in deploy.sh / README.
+name: deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency: deploy
+
+env:
+  PROJECT: juraj-personal
+  REGION: europe-west3
+  JOB: newsletter2rm
+  IMAGE: europe-west3-docker.pkg.dev/juraj-personal/newsletter2rm/newsletter2rm
+  WIF_PROVIDER: projects/608361512758/locations/global/workloadIdentityPools/github/providers/github
+  DEPLOYER: github-deployer@juraj-personal.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    # Forks have no access to the GCP project.
+    if: github.repository == 'slonik923/newsletter2rm'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Build and push
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "${IMAGE}:${GITHUB_SHA}" -t "${IMAGE}:latest" .
+          docker push --all-tags "${IMAGE}"
+
+      - name: Update Cloud Run Job
+        run: gcloud run jobs update "$JOB" --project "$PROJECT" --region "$REGION" --image "${IMAGE}:${GITHUB_SHA}"
