@@ -62,6 +62,16 @@ job. Put the printed values into the workflow's `env`. After that, every push to
 builds the image on GitHub and points the job at it. `deploy.sh` is only needed again to change
 the schedule, secret or other infrastructure.
 
+### Failure alert
+
+```sh
+PROJECT=my-project ALERT_EMAIL=me@example.com ./setup-alert.sh
+```
+
+Emails you when a job execution fails, for example when the rmapi token is revoked or the
+feed is unreachable. Test it with a one-off failing run (the job's own config is untouched):
+`gcloud run jobs execute newsletter2rm --region europe-west3 --update-env-vars FEED_URL=https://example.com/nope`
+
 ## Settings (env vars)
 
 | var | default |
