@@ -1,7 +1,6 @@
 /* Tuned for the reMarkable 2 e-ink screen: page = screen, high contrast, no colour. */
 @page { size: PAGE_SIZE; margin: PAGE_MARGIN; }
 
-html { -webkit-print-color-adjust: exact; }
 body {
   margin: 0;
   font-family: "Noto Serif", "DejaVu Serif", serif;

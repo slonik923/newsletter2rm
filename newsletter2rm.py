@@ -1,6 +1,6 @@
 """Send new posts from a Substack RSS feed to a reMarkable as device-sized PDFs.
 
-Flow: RSS -> clean HTML (grayscale, inlined images) -> Chromium PDF -> rmapi put.
+Flow: RSS -> clean HTML (grayscale, inlined images) -> WeasyPrint PDF -> rmapi put.
 """
 
 import argparse
@@ -23,7 +23,7 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps
-from playwright.sync_api import sync_playwright
+import weasyprint
 
 FEED_URL = os.environ.get("FEED_URL", "https://newsletter.eng-leadership.com/feed")
 STATE_URI = os.environ.get("STATE_URI", "state.json")  # local path or gs://bucket/key
@@ -190,11 +190,8 @@ def build_document(post, publication):
 
 # --- output ------------------------------------------------------------------
 
-def render_pdf(browser, document, out_path):
-    page = browser.new_page()
-    page.set_content(document, wait_until="load")
-    page.pdf(path=str(out_path), prefer_css_page_size=True, print_background=True)
-    page.close()
+def render_pdf(document, out_path):
+    weasyprint.HTML(string=document).write_pdf(out_path)
 
 
 def file_name(post):
@@ -221,6 +218,7 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="dry-run: number of latest posts to render")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    logging.getLogger("fontTools").setLevel(logging.WARNING)  # WeasyPrint font subsetting is chatty
 
     posts, publication = fetch_feed()
     state = None if args.dry_run else load_state()
@@ -243,18 +241,15 @@ def main():
     if not args.dry_run:
         rmapi("mkdir", RM_FOLDER, check=False)  # fails harmlessly if it exists
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch()
-        for post in todo:
-            pdf = out_dir / f"{file_name(post)}.pdf"
-            log.info("rendering %s", pdf.name)
-            render_pdf(browser, build_document(post, publication), pdf)
-            if args.dry_run:
-                continue
-            upload(pdf)
-            state["sent"].append(post["id"])
-            save_state(state)  # after each upload, so a crash never re-sends
-        browser.close()
+    for post in todo:
+        pdf = out_dir / f"{file_name(post)}.pdf"
+        log.info("rendering %s", pdf.name)
+        render_pdf(build_document(post, publication), pdf)
+        if args.dry_run:
+            continue
+        upload(pdf)
+        state["sent"].append(post["id"])
+        save_state(state)  # after each upload, so a crash never re-sends
 
     if not args.out:
         shutil.rmtree(out_dir, ignore_errors=True)

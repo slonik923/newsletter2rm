@@ -7,8 +7,8 @@ RSS feed with full `content:encoded` HTML). Paywalled posts get the free preview
 
 Not affiliated with reMarkable or Substack. Uploads use [rmapi](https://github.com/ddvk/rmapi).
 
-Flow: RSS → clean HTML (images downloaded at full size, grayscale, inlined) → headless
-Chromium PDF → `rmapi put /Newsletters`.
+Flow: RSS → clean HTML (images downloaded at full size, grayscale, inlined) →
+WeasyPrint PDF → `rmapi put /Newsletters`.
 
 ## Local
 
@@ -82,3 +82,15 @@ feed is unreachable. Test it with a one-off failing run (the job's own config is
 | `STATE_URI` | `state.json` (local path or `gs://bucket/key`) |
 
 Look tweaks: `style.css`. Page size and margins: constants at the top of `newsletter2rm.py`.
+
+## Your notes on the device
+
+The job never overwrites a document: it runs `rmapi put` without `--force`, and rmapi refuses to
+upload onto an existing name. Notes you write on a newsletter are safe from this job.
+
+What can go wrong instead: if a post's file name already exists in `RM_FOLDER`, its upload fails
+and the post is not marked as sent. That happens when the state file is lost (the next run is a
+"first run" and backfills posts you already have) or when you copied a post there by hand. Every
+run then fails on that post, so later posts stop arriving and the failure alert fires. Fix: move
+or rename the existing document on the device (your notes go with it), or add the post's id to
+`sent` in the state file.
